@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Phigros 自制谱面比赛报名系统</title>
+  <meta name="description" content="Phigros 自制谱面比赛报名、审核、随机挑战分发与结果查询系统" />
+  <link rel="stylesheet" href="./style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="./config.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container hero">
+      <div>
+        <p class="eyebrow">Phigros Fan Chart Contest</p>
+        <h1>自制谱面比赛报名系统</h1>
+        <p class="hero-text">选手自助报名、密钥查询结果；主办方审核后触发随机挑战内容。</p>
+      </div>
+      <div class="hero-card">
+        <strong>重要提示</strong>
+        <span>报名成功后请立即截图保存查询密钥。密钥丢失后无法通过 QQ 号公开找回。</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-grid">
+    <nav class="tabs" aria-label="页面导航">
+      <button class="tab-btn active" data-tab="registration">报名</button>
+      <button class="tab-btn" data-tab="query">查询结果</button>
+      <button class="tab-btn" data-tab="admin">管理员后台</button>
+    </nav>
+
+    <section id="registration" class="panel active" aria-labelledby="报名">
+      <div class="panel-head">
+        <h2>选手报名</h2>
+        <p>请准确填写信息。提交后系统会生成 8 位查询密钥。</p>
+      </div>
+
+      <form id="registrationForm" class="card form">
+        <label>
+          <span>QQ号 <b>*</b></span>
+          <input name="qq" inputmode="numeric" autocomplete="off" placeholder="例如：123456789" required />
+          <small>用于唯一识别与主办方联系，不会在公开查询中按 QQ 号检索。</small>
+        </label>
+
+        <fieldset class="field-group">
+          <legend>是否匿名 <b>*</b></legend>
+          <label class="radio-row"><input type="radio" name="isAnonymous" value="true" checked /> 是</label>
+          <label class="radio-row"><input type="radio" name="isAnonymous" value="false" /> 否</label>
+        </fieldset>
+
+        <label>
+          <span id="nameLabel">马甲/代号 <b>*</b></span>
+          <input name="displayName" autocomplete="nickname" placeholder="请输入参赛显示名称" maxlength="80" required />
+        </label>
+
+        <fieldset class="field-group">
+          <legend>挑战项目选择 <b>*</b></legend>
+          <div class="check-grid">
+            <label><input type="checkbox" name="challenge" value="Tap" /> Tap</label>
+            <label><input type="checkbox" name="challenge" value="Hold" /> Hold</label>
+            <label><input type="checkbox" name="challenge" value="Flick" /> Flick</label>
+            <label><input type="checkbox" name="challenge" value="Drag" /> Drag</label>
+          </div>
+          <small>至少选择一项。</small>
+        </fieldset>
+
+        <label>
+          <span>选手留言</span>
+          <textarea name="message" rows="4" placeholder="可填写偏好、备注或联系方式补充"></textarea>
+        </label>
+
+        <button class="primary" type="submit">提交报名</button>
+      </form>
+
+      <div id="secretBox" class="notice success hidden" role="status"></div>
+    </section>
+
+    <section id="query" class="panel" aria-labelledby="查询结果">
+      <div class="panel-head">
+        <h2>结果查询</h2>
+        <p>请输入报名成功后获得的查询密钥。</p>
+      </div>
+
+      <form id="queryForm" class="card form compact-form">
+        <label>
+          <span>查询密钥</span>
+          <input name="secretKey" autocomplete="off" placeholder="例如：A7K3Q9ZD" required />
+        </label>
+        <button class="primary" type="submit">查询</button>
+      </form>
+
+      <div id="queryResult" class="query-result"></div>
+    </section>
+
+    <section id="admin" class="panel" aria-labelledby="管理员后台">
+      <div class="panel-head">
+        <h2>管理员后台</h2>
+        <p>管理员登录后可审核报名、预览随机、导出 CSV。</p>
+      </div>
+
+      <div id="adminLoginCard" class="card form">
+        <label>
+          <span>管理员邮箱</span>
+          <input id="adminEmail" type="email" autocomplete="username" placeholder="admin@example.com" />
+        </label>
+        <label>
+          <span>管理员密码</span>
+          <input id="adminPassword" type="password" autocomplete="current-password" placeholder="请输入密码" />
+        </label>
+        <button id="adminLoginBtn" class="primary" type="button">登录后台</button>
+        <small>管理员账号需先在 Supabase Auth 创建，并写入 admins 表。</small>
+      </div>
+
+      <div id="adminDashboard" class="hidden">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <button id="refreshAdminBtn" class="secondary" type="button">刷新列表</button>
+            <button id="exportCsvBtn" class="secondary" type="button">导出 CSV</button>
+          </div>
+          <button id="adminLogoutBtn" class="ghost" type="button">退出登录</button>
+        </div>
+
+        <div id="adminStats" class="stats"></div>
+        <div id="adminList" class="admin-list"></div>
+
+        <div class="pagination">
+          <button id="prevPageBtn" class="secondary" type="button">上一页</button>
+          <span id="pageInfo">第 1 页</span>
+          <button id="nextPageBtn" class="secondary" type="button">下一页</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <span>Built for GitHub Pages + Supabase</span>
+      <span>请自行替换挑战池文本与 Supabase 配置。</span>
+    </div>
+  </footer>
+
+  <template id="adminRowTemplate">
+    <article class="admin-card">
+      <div class="admin-card-head">
+        <div>
+          <h3 class="js-title"></h3>
+          <p class="muted js-meta"></p>
+        </div>
+        <span class="status-badge js-status"></span>
+      </div>
+
+      <div class="detail-grid">
+        <div><b>QQ</b><span class="js-qq"></span></div>
+        <div><b>匿名</b><span class="js-anonymous"></span></div>
+        <div><b>挑战项</b><span class="js-items"></span></div>
+        <div><b>留言</b><span class="js-message"></span></div>
+      </div>
+
+      <label class="result-editor">
+        <span>随机/审核结果文本</span>
+        <textarea class="js-result" rows="5" placeholder="点击预览随机生成，或手动填写/修改"></textarea>
+      </label>
+
+      <div class="action-row">
+        <button class="secondary js-preview" type="button">预览随机</button>
+        <button class="primary js-approve" type="button">通过</button>
+        <button class="danger js-reject" type="button">拒绝</button>
+      </div>
+    </article>
+  </template>
+</body>
+</html>
