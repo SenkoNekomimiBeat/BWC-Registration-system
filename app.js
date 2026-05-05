@@ -94,23 +94,29 @@ function bindRegistration() {
     });
   });
 
-  qs("#registrationForm").addEventListener("submit", async (event) => {
+  const registrationForm = qs("#registrationForm");
+
+  if (!registrationForm) {
+    console.error("未找到 registrationForm，请检查 index.html");
+    return;
+  }
+
+  registrationForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    
+
     const formEl = event.target.closest("form");
-    
+
     if (!formEl) {
       showNotice(qs("#secretBox"), "表单元素未找到，请检查 index.html 中 registrationForm 是否存在。", "error");
       return;
     }
-    
+
     if (!supabaseClient) {
       showNotice(qs("#secretBox"), "系统尚未连接 Supabase。请检查 config.js 和 Supabase 配置。", "error");
       return;
     }
-    
+
     const form = new FormData(formEl);
-  
     const challenges = qsa("input[name='challenge']:checked").map(input => input.value);
 
     if (!challenges.length) {
@@ -126,11 +132,11 @@ function bindRegistration() {
       p_message: normalizeText(form.get("message"))
     };
 
-    setSubmitting(fromEl, true);
+    setSubmitting(formEl, true);
 
     const { data, error } = await supabaseClient.rpc("submit_registration", payload);
 
-    setSubmitting(fromEl, false);
+    setSubmitting(formEl, false);
 
     if (error) {
       showNotice(qs("#secretBox"), `提交失败：${escapeHtml(error.message)}`, "error");
@@ -145,7 +151,7 @@ function bindRegistration() {
       return;
     }
 
-    fromEl.reset();
+    formEl.reset();
     qs("#nameLabel").innerHTML = "马甲/代号 <b>*</b>";
 
     showNotice(
