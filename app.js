@@ -1,5 +1,8 @@
 const qs = (selector, parent = document) => parent.querySelector(selector);
-const qsa = (selector, parent = document) => [...parent.querySelectorAll(selector)];
+const qsa = (selector, parent = document) => {
+  if (!parent) return [];
+  return [...parent.querySelectorAll(selector)];
+};
 
 let supabaseClient;
 let currentPage = 0;
@@ -93,12 +96,21 @@ function bindRegistration() {
 
   qs("#registrationForm").addEventListener("submit", async (event) => {
     event.preventDefault();
+    
+    const formEl = event.target.closest("form");
+    
+    if (!formEl) {
+      showNotice(qs("#secretBox"), "表单元素未找到，请检查 index.html 中 registrationForm 是否存在。", "error");
+      return;
+    }
+    
     if (!supabaseClient) {
       showNotice(qs("#secretBox"), "系统尚未连接 Supabase。请检查 config.js 和 Supabase 配置。", "error");
       return;
     }
-  
+    
     const form = new FormData(formEl);
+  
     const challenges = qsa("input[name='challenge']:checked").map(input => input.value);
 
     if (!challenges.length) {
@@ -468,6 +480,8 @@ function normalizeText(value) {
 }
 
 function setSubmitting(form, submitting) {
+  if (!form) return;
+
   qsa("button, input, textarea", form).forEach(el => {
     el.disabled = submitting;
   });
