@@ -93,9 +93,12 @@ function bindRegistration() {
 
   qs("#registrationForm").addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (!supabaseClient) return;
-
-    const form = new FormData(event.currentTarget);
+    if (!supabaseClient) {
+      showNotice(qs("#secretBox"), "系统尚未连接 Supabase。请检查 config.js 和 Supabase 配置。", "error");
+      return;
+    }
+  
+    const form = new FormData(formEl);
     const challenges = qsa("input[name='challenge']:checked").map(input => input.value);
 
     if (!challenges.length) {
@@ -111,11 +114,11 @@ function bindRegistration() {
       p_message: normalizeText(form.get("message"))
     };
 
-    setSubmitting(event.currentTarget, true);
+    setSubmitting(fromEl, true);
 
     const { data, error } = await supabaseClient.rpc("submit_registration", payload);
 
-    setSubmitting(event.currentTarget, false);
+    setSubmitting(fromEl, false);
 
     if (error) {
       showNotice(qs("#secretBox"), `提交失败：${escapeHtml(error.message)}`, "error");
@@ -130,7 +133,7 @@ function bindRegistration() {
       return;
     }
 
-    event.currentTarget.reset();
+    fromEl.reset();
     qs("#nameLabel").innerHTML = "马甲/代号 <b>*</b>";
 
     showNotice(
